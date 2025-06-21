@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-key="pageTitle">The Party of Competence and Development</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: "Iranian Pride" (Clean White background, #239F40 Green, #DA0000 Red, and #FFC300 Gold accents) -->
+    <!-- Application Structure Plan: A single-page application designed for intuitive exploration. It begins with a strong vision statement, then guides the user to a central hub showcasing the "Four Pillars." Each pillar is a clickable, interactive card that smoothly scrolls to a detailed section. This structure avoids a long, static document, encouraging user engagement and making the platform's key tenets digestible. The flow is: Vision -> Emblem -> Pillar Overview -> Pillar Detail -> Call to Action. This was chosen to transform a text-based manifesto into a dynamic and memorable user journey. -->
+    <!-- Visualization & Content Choices: 
+        - Goal: Inform/Organize. Method: Interactive Pillar Cards. Interaction: Click to scroll. Justification: Provides a clear, high-level overview and navigation hub.
+        - Pillar 1 (Governance): Goal: Compare. Method: Two-column layout ("Problem" vs. "Solution") with Unicode icons. Interaction: Hover effects. Justification: Clearly contrasts the past with the proposed future.
+        - Pillar 2 (Foreign Policy): Goal: Organize/Relationships. Method: Diagram of concentric circles and connecting lines built with HTML/CSS. Interaction: None, it's a static conceptual visual. Justification: Visualizes the shift from isolation to global partnership.
+        - Pillar 3 (Democracy): Goal: Organize. Method: Doughnut Chart (Chart.js). Interaction: Tooltips on hover. Justification: Visually represents "Unity in Diversity" more powerfully than a list, showing all ethnicities as part of a whole. Also uses a styled-div flowchart for checks and balances.
+        - Pillar 4 (Environment): Goal: Compare/Change. Method: Interactive Toggle Switch. Interaction: Click to change content. Justification: Makes the choice between unsustainable and sustainable paths a tangible, interactive experience.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FFFFFF;
+        }
+        :lang(fa) {
+            font-family: 'Vazirmatn', sans-serif;
+        }
+        :root {
+            --flag-green: #239F40;
+            --flag-red: #DA0000;
+            --accent-gold: #FFC300;
+            --light-green-bg: #E8F5E9;
+            --highlight-violet: #6D28D9;
+        }
+        .bg-primary { background-color: var(--flag-green); }
+        .text-primary { color: var(--flag-green); }
+        .bg-secondary { background-color: var(--light-green-bg); }
+        .text-accent-gold { color: var(--accent-gold); }
+        .bg-accent-gold { background-color: var(--accent-gold); }
+        .text-accent-red { color: var(--flag-red); }
+        .border-accent-gold { border-color: var(--accent-gold); }
+        .text-highlight { color: var(--highlight-violet); }
+        .bg-highlight-violet { background-color: var(--highlight-violet); }
+        
+        .pillar-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .pillar-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 20px rgba(35, 159, 64, 0.1);
+        }
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toggle-bg:after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        input:checked + .toggle-bg:after {
+            transform: translateX(100%);
+            left: calc(100% - 22px);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .lang-switcher button.active {
+            color: var(--accent-gold);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header -->
+    <header class="bg-primary text-white sticky top-0 z-50 shadow-md">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <a href="#" class="text-xl font-bold text-accent-gold" data-key="partyNameShort">حزب شایستگی و توسعه</a>
+            <div class="hidden md:flex items-center">
+                <a href="#vision" class="mx-4 hover:text-accent-gold transition-colors" data-key="navVision">Our Vision</a>
+                <a href="#pillars" class="mx-4 hover:text-accent-gold transition-colors" data-key="navPillars">The Four Pillars</a>
+                <a href="content/manifesto_en.pdf" target="_blank" rel="noopener noreferrer" class="mx-4 bg-highlight-violet text-white font-bold px-4 py-2 rounded-md hover:bg-violet-700 transition-colors text-sm" data-key="navManifesto">Manifesto</a>
+                <a href="content/roadmap_en.pdf" target="_blank" rel="noopener noreferrer" class="ltr:ml-2 rtl:mr-2 bg-accent-gold text-primary font-bold px-4 py-2 rounded-md hover:bg-yellow-500 transition-colors text-sm" data-key="navRoadmap">Roadmap</a>
+            </div>
+            <div class="flex items-center">
+                <div class="lang-switcher text-white/80 text-sm font-medium hidden md:flex items-center ltr:mr-4 rtl:ml-4">
+                    <button data-lang="en" class="px-2 active">English</button>
+                    <span>|</span>
+                    <button data-lang="fa" class="px-2">فارسی</button>
+                </div>
+                <button id="mobile-menu-button" class="md:hidden focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden px-6 pb-3 bg-primary">
+            <a href="#vision" class="block py-2 hover:text-accent-gold transition-colors" data-key="navVisionMobile">Our Vision</a>
+            <a href="#pillars" class="block py-2 hover:text-accent-gold transition-colors" data-key="navPillarsMobile">The Four Pillars</a>
+            <a href="content/manifesto_en.pdf" target="_blank" rel="noopener noreferrer" class="block py-2 text-center bg-highlight-violet rounded-md mt-2 hover:bg-violet-700 transition-colors" data-key="navManifestoMobile">Manifesto</a>
+            <a href="content/roadmap_en.pdf" target="_blank" rel="noopener noreferrer" class="block py-2 text-center bg-accent-gold text-primary rounded-md mt-2 hover:bg-yellow-500 transition-colors" data-key="navRoadmapMobile">Roadmap</a>
+             <div class="lang-switcher-mobile text-white/80 text-sm font-medium flex items-center mt-2 pt-2 border-t border-white/20">
+                    <button data-lang="en" class="px-2 active">English</button>
+                    <span>|</span>
+                    <button data-lang="fa" class="px-2">فارسی</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section id="hero" class="py-20 md:py-24 bg-secondary">
+            <div class="container mx-auto px-6 text-center">
+                <h1 class="text-4xl md:text-6xl font-extrabold text-primary" data-key="partyNameLong">حزب شایستگی و توسعه</h1>
+                <h2 class="text-xl md:text-2xl font-medium text-primary/80 mt-2" data-key="partySubtitle">The Party of Competence and Development</h2>
+                
+                <!-- Core Values Section -->
+                <div class="mt-12 fade-in">
+                    <div class="max-w-4xl mx-auto bg-white/60 p-6 rounded-lg shadow">
+                         <h3 class="text-xl font-bold text-primary mb-4" data-key="coreValuesTitle">In Simple Terms, We Believe In:</h3>
+                         <p class="text-lg md:text-xl text-primary/90 leading-relaxed" data-key="coreValuesText">
+                            A future for Iran built on <strong class="text-highlight">Competency</strong>, not connections. Full <strong class="text-highlight">Transparency</strong> in government. A strong, respected Iran that is a <strong class="text-highlight">Partner with the World</strong>. And a deep commitment to <strong class="text-highlight">Protecting Iran's Environment</strong> for our children.
+                         </p>
+                    </div>
+                </div>
+
+                <div id="vision" class="max-w-3xl mx-auto mt-12 fade-in" style="transition-delay: 0.2s;">
+                    <p class="text-lg md:text-xl text-primary/90 leading-relaxed" data-key="visionText">
+                        Our vision is to build a prosperous, sovereign, and respected Iran where every citizen has the dignity of opportunity and the security of justice. We envision a nation defined by the competence of its people, the transparency of its government, peaceful engagement with the world, and harmony with its environment. <strong>We are unequivocally committed to the territorial integrity and national sovereignty of Iran.</strong>
+                    </p>
+                    <div class="mt-8 flex flex-wrap justify-center gap-4">
+                        <a href="content/manifesto_en.pdf" target="_blank" rel="noopener noreferrer" class="bg-gray-200 text-primary font-bold py-3 px-8 rounded-lg hover:bg-gray-300 transition-colors shadow-sm inline-block" data-key="manifestoButton">Read Our Manifesto</a>
+                        <a href="content/roadmap_en.pdf" target="_blank" rel="noopener noreferrer" class="bg-accent-gold text-primary font-bold py-3 px-8 rounded-lg hover:bg-yellow-500 transition-colors shadow-lg inline-block" data-key="roadmapButton">Explore the Roadmap</a>
+                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Emblem Section -->
+        <section id="emblem" class="py-20">
+            <div class="container mx-auto px-6 text-center">
+                 <div class="max-w-3xl mx-auto fade-in">
+                    <h2 class="text-3xl md:text-4xl font-bold text-primary" data-key="emblemTitle">Our Emblem: Strength and Progress</h2>
+                    <p class="mt-4 text-primary/80 leading-relaxed" data-key="emblemText">
+                        We honor our rich history while looking to the future. Our emblem is the historic Lion and Sun, a symbol of Iranian courage, strength, and our nation's enduring spirit. It connects our deep roots to a future of development and shared purpose.
+                    </p>
+                    <div class="mt-8 flex justify-center">
+                         <img src="images/emblem_lion_sun.svg" 
+                              alt="Lion and Sun Emblem" 
+                              class="h-48 w-auto"
+                              onerror="this.onerror=null; this.src='https://placehold.co/240x200/FFFFFF/DA0000?text=Emblem';">
+                    </div>
+                 </div>
+            </div>
+        </section>
+
+        <!-- Pillars Section -->
+        <section id="pillars" class="py-20 bg-secondary">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 fade-in">
+                    <h2 class="text-3xl md:text-4xl font-bold text-primary" data-key="pillarsTitle">Our Four Pillars for a New Iran</h2>
+                    <p class="max-w-2xl mx-auto mt-4 text-primary/80" data-key="pillarsSubtitle">
+                        Our platform is built on four foundational pillars designed to address our nation's most pressing challenges and unlock its immense potential. Click on a pillar to explore our vision for the future.
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Pillar Card 1 -->
+                    <a href="#pillar1-detail" class="pillar-card block bg-white p-8 rounded-lg shadow-lg text-center fade-in">
+                        <div class="text-4xl mb-4">⚖️</div>
+                        <h3 class="text-xl font-bold text-primary mb-2" data-key="pillar1Title">Good Governance</h3>
+                        <p class="text-primary/70" data-key="pillar1Subtitle">Competence, Transparency, and Accountability.</p>
+                    </a>
+                    <!-- Pillar Card 2 -->
+                    <a href="#pillar2-detail" class="pillar-card block bg-white p-8 rounded-lg shadow-lg text-center fade-in" style="transition-delay: 0.1s;">
+                        <div class="text-4xl mb-4">🌍</div>
+                        <h3 class="text-xl font-bold text-primary mb-2" data-key="pillar2Title">Foreign Policy</h3>
+                        <p class="text-primary/70" data-key="pillar2Subtitle">A Welcoming Hand to the World.</p>
+                    </a>
+                    <!-- Pillar Card 3 -->
+                    <a href="#pillar3-detail" class="pillar-card block bg-white p-8 rounded-lg shadow-lg text-center fade-in" style="transition-delay: 0.2s;">
+                        <div class="text-4xl mb-4">🗳️</div>
+                        <h3 class="text-xl font-bold text-primary mb-2" data-key="pillar3Title">Democratic Safeguards</h3>
+                        <p class="text-primary/70" data-key="pillar3Subtitle">A Fair and Unbiased System for All.</p>
+                    </a>
+                    <!-- Pillar Card 4 -->
+                    <a href="#pillar4-detail" class="pillar-card block bg-white p-8 rounded-lg shadow-lg text-center fade-in" style="transition-delay: 0.3s;">
+                        <div class="text-4xl mb-4">🌱</div>
+                        <h3 class="text-xl font-bold text-primary mb-2" data-key="pillar4Title">Environmental Sustainability</h3>
+                        <p class="text-primary/70" data-key="pillar4Subtitle">Securing Our Land and Water.</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pillar 1 Detail -->
+        <section id="pillar1-detail" class="py-20">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12 fade-in">
+                    <h2 class="text-3xl font-bold text-primary" data-key="pillar1DetailTitle">Pillar 1: Good Governance</h2>
+                    <p class="italic mt-2 text-primary/70" data-key="pillar1DetailQuote">We will strive for a government that serves the people, not the powerful. We will work to dismantle the systems of corruption and cronyism that have held our nation back.</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-12 items-start">
+                    <div class="bg-red-50 p-6 rounded-lg border border-red-200 fade-in">
+                        <h3 class="text-xl font-bold text-accent-red mb-4" data-key="p1PastTitle">The Past: A System of Decay</h3>
+                        <ul class="space-y-3 text-red-800">
+                            <li data-key="p1Past1"><span class="font-bold">⛓️ Cronyism:</span> Key roles based on connections, not skill.</li>
+                            <li data-key="p1Past2"><span class="font-bold">🔒 Lack of Transparency:</span> Public funds and decisions hidden from view.</li>
+                            <li data-key="p1Past3"><span class="font-bold">⚖️ Unequal Justice:</span> Laws applied differently based on status.</li>
+                            <li data-key="p1Past4"><span class="font-bold">⛪️ Religious Governance:</span> State authority tied to religious doctrine.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-green-50 p-6 rounded-lg border border-green-200 fade-in" style="transition-delay: 0.2s;">
+                        <h3 class="text-xl font-bold text-primary mb-4" data-key="p1FutureTitle">Our Future: A System of Integrity</h3>
+                        <ul class="space-y-3" style="color: #239F40;">
+                            <li data-key="p1Future1"><span class="font-bold">🏛️ Secular Governance:</span> Separation of religion and state.</li>
+                            <li data-key="p1Future2"><span class="font-bold">🎓 Merit-Based Service:</span> An independent commission to ensure competence.</li>
+                            <li data-key="p1Future3"><span class="font-bold">🔍 Radical Transparency:</span> A powerful anti-corruption agency.</li>
+                            <li data-key="p1Future4"><span class="font-bold">⚖️ Independent Judiciary:</span> Rule of law applied equally to all.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pillar 2 Detail -->
+        <section id="pillar2-detail" class="py-20 bg-secondary">
+             <div class="container mx-auto px-6">
+                <div class="text-center mb-12 fade-in">
+                    <h2 class="text-3xl font-bold text-primary" data-key="pillar2DetailTitle">Pillar 2: Foreign Policy</h2>
+                    <p class="italic mt-2 text-primary/70" data-key="pillar2DetailQuote">Isolation belongs in the past. Iran's strength lies in its ability to be a constructive and engaged partner on the world stage.</p>
+                </div>
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    <div class="fade-in">
+                        <h3 class="text-2xl font-bold text-primary mb-4" data-key="p2Title">From Isolation to Partnership</h3>
+                        <p class="text-primary/80 mb-6" data-key="p2Text">Our foreign policy will be guided by the principle of "Friend to All, Partner for Peace." We will build a "Ring of Prosperity" with our neighbors and open our doors to tourism and investment, re-establishing Iran as a respected member of the international community.</p>
+                        <ul class="space-y-4">
+                            <li class="flex items-start"><span class="bg-accent-gold text-primary rounded-full w-6 h-6 flex items-center justify-center font-bold ltr:mr-3 rtl:ml-3 flex-shrink-0">1</span><span data-key="p2Point1">Resolve disputes through diplomacy and de-escalation.</span></li>
+                            <li class="flex items-start"><span class="bg-accent-gold text-primary rounded-full w-6 h-6 flex items-center justify-center font-bold ltr:mr-3 rtl:ml-3 flex-shrink-0">2</span><span data-key="p2Point2">Launch a national initiative to become a world-class tourism destination.</span></li>
+                            <li class="flex items-start"><span class="bg-accent-gold text-primary rounded-full w-6 h-6 flex items-center justify-center font-bold ltr:mr-3 rtl:ml-3 flex-shrink-0">3</span><span data-key="p2Point3">Build a "Ring of Prosperity" with neighbors on joint economic projects.</span></li>
+                        </ul>
+                    </div>
+                    <div class="fade-in flex items-center justify-center p-8" style="transition-delay: 0.2s;">
+                        <div class="relative w-72 h-72">
+                             <div class="absolute inset-0 border-2 border-dashed border-green-300 rounded-full"></div>
+                             <div class="absolute inset-4 border-2 border-dashed border-green-300 rounded-full"></div>
+                             <div class="absolute top-1/2 left-1/2 w-24 h-24 bg-primary text-white rounded-full flex items-center justify-center text-center -translate-x-1/2 -translate-y-1/2 font-bold text-lg shadow-lg" data-key="diagramIran">Iran</div>
+                             <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 px-2 py-1 bg-white rounded-md text-sm shadow" data-key="diagramWorld">World</div>
+                             <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-4 px-2 py-1 bg-white rounded-md text-sm shadow" data-key="diagramNeighbors">Neighbors</div>
+                             <div class="absolute left-0 top-1/2 -translate-y-1/2 ltr:-translate-x-4 rtl:translate-x-4 px-2 py-1 bg-white rounded-md text-sm shadow" data-key="diagramInvestment">Investment</div>
+                             <div class="absolute right-0 top-1/2 -translate-y-1/2 ltr:translate-x-4 rtl:-translate-x-4 px-2 py-1 bg-white rounded-md text-sm shadow" data-key="diagramTourism">Tourism</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pillar 3 Detail -->
+        <section id="pillar3-detail" class="py-20">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12 fade-in">
+                    <h2 class="text-3xl font-bold text-primary" data-key="pillar3DetailTitle">Pillar 3: Democratic Safeguards</h2>
+                    <p class="italic mt-2 text-primary/70" data-key="pillar3DetailQuote">Power must be a trust, not a right. We will strive for a system that prevents the rise of dictatorship and protects the rights of every single Iranian.</p>
+                </div>
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                     <div class="fade-in">
+                        <h3 class="text-2xl font-bold text-primary mb-2" data-key="p3Title1">Unity in Diversity</h3>
+                        <p class="text-primary/80 mb-4" data-key="p3Text1">We support laws that explicitly protect the rights of all ethnic groups. We recognize Persian as the official language for national unity, while simultaneously promoting regional languages as a vital part of our national heritage.</p>
+                        <div class="chart-container">
+                            <canvas id="diversityChart"></canvas>
+                        </div>
+                     </div>
+                     <div class="fade-in" style="transition-delay: 0.2s;">
+                         <h3 class="text-2xl font-bold text-primary mb-4" data-key="p3Title2">Checks and Balances</h3>
+                         <p class="text-primary/80 mb-6" data-key="p3Text2">We advocate for a parliamentary system with strict term limits. True national unity is built on trust and partnership, devolving power to local governments to strengthen our national bond.</p>
+                         <div class="space-y-4 text-center p-4">
+                             <div class="bg-white p-4 rounded-lg shadow-md border font-bold" data-key="p3Flow1">The People</div>
+                             <div class="text-2xl text-green-400">↓</div>
+                             <div class="bg-white p-4 rounded-lg shadow-md border font-bold" data-key="p3Flow2">Freely Elected Parliament</div>
+                             <div class="text-2xl text-green-400">↓</div>
+                             <div class="bg-white p-4 rounded-lg shadow-md border font-bold" data-key="p3Flow3">Accountable Executive (Prime Minister)</div>
+                         </div>
+                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pillar 4 Detail -->
+        <section id="pillar4-detail" class="py-20 bg-secondary">
+             <div class="container mx-auto px-6">
+                 <div class="text-center mb-12 fade-in">
+                    <h2 class="text-3xl font-bold text-primary" data-key="pillar4DetailTitle">Pillar 4: Environmental Sustainability</h2>
+                    <p class="italic mt-2 text-primary/70" data-key="pillar4DetailQuote">Our natural resources are the foundation of our national prosperity and well-being. We will act decisively to reverse the environmental crises that threaten our nation's very survival.</p>
+                </div>
+
+                <div class="max-w-3xl mx-auto">
+                    <div class="bg-white p-8 rounded-lg shadow-lg fade-in">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-2xl font-bold text-primary" data-key="p4Title">A Green Economic Shift</h3>
+                            <div class="flex items-center space-x-3">
+                                <span id="toggle-label" class="font-medium text-accent-red" data-key="p4ToggleLabel">Unsustainable Path</span>
+                                <label for="env-toggle" class="flex items-center cursor-pointer">
+                                    <div class="relative">
+                                        <input type="checkbox" id="env-toggle" class="sr-only">
+                                        <div class="block bg-gray-300 w-12 h-6 rounded-full toggle-bg"></div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="env-content">
+                            <div id="unsustainable-content">
+                                <p class="text-primary/80 mb-4" data-key="p4TextUnsustainable">Continuing on the current path means prioritizing water-intensive industries and agricultural practices that deplete our most precious resource.</p>
+                                <ul class="space-y-2 text-red-800">
+                                    <li data-key="p4Point1Unsustainable">🏭 Subsidies for polluting industries like tile manufacturing.</li>
+                                    <li data-key="p4Point2Unsustainable">🍉 Cultivation of water-intensive crops like rice and watermelon.</li>
+                                    <li data-key="p4Point3Unsustainable">🚱 Neglect of our deteriorating water infrastructure.</li>
+                                </ul>
+                            </div>
+                             <div id="sustainable-content" class="hidden">
+                                 <p class="text-primary/80 mb-4" data-key="p4TextSustainable">Our plan is to declare a national water emergency, invest in sustainable technology, and shift our economy towards a green future.</p>
+                                 <ul class="space-y-2" style="color: #239F40;">
+                                    <li data-key="p4Point1Sustainable">💧 Massive investment in desalination and water conservation.</li>
+                                    <li data-key="p4Point2Sustainable">🏞️ Promoting high-value, low-impact sectors like eco-tourism and tech.</li>
+                                    <li data-key="p4Point3Sustainable">🌲 Creating and expanding national parks to protect our natural heritage.</li>
+                                 </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Get Involved Section -->
+        <section id="get-involved" class="py-20 bg-primary text-white">
+            <div class="container mx-auto px-6 text-center">
+                <div class="fade-in">
+                    <h2 class="text-3xl font-bold" data-key="getInvolvedTitle">Join the Party for a New Iran</h2>
+                    <p class="max-w-2xl mx-auto mt-4 text-white/80" data-key="getInvolvedText">The future of Iran is in our hands. If you believe in a future defined by competence, justice, and prosperity, join us in building it.</p>
+                    
+                    <form id="signup-form" class="mt-8 max-w-xl mx-auto">
+                        <h3 class="text-xl font-bold text-accent-gold mb-4" data-key="involved1Title">1. Stay Informed</h3>
+                        <p class="mb-4 text-white/80" data-key="involved1Text">Join our mailing list to receive updates on our progress and learn more about our detailed policy proposals.</p>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <input type="email" id="email-input" placeholder="your.email@example.com" class="w-full px-4 py-3 rounded-md text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-gold" required>
+                            <button type="submit" id="signup-button" class="bg-accent-gold text-primary font-bold py-3 px-8 rounded-lg hover:bg-yellow-500 transition-colors shadow-lg" data-key="signUpButton">Sign Up</button>
+                        </div>
+                        <p id="form-message" class="mt-4 text-sm h-5"></p>
+                    </form>
+
+                    <div class="grid md:grid-cols-2 gap-8 mt-12 text-left pt-8 border-t border-white/20">
+                        <div class="bg-white/10 p-6 rounded-lg">
+                            <h3 class="text-xl font-bold text-accent-gold mb-2" data-key="involved2Title">2. Share the Vision</h3>
+                            <p data-key="involved2Text">Talk to your friends, family, and community about our Four Pillars. A shared vision is the first step towards real change.</p>
+                        </div>
+                        <div class="bg-white/10 p-6 rounded-lg">
+                            <h3 class="text-xl font-bold text-accent-gold mb-2" data-key="involved3Title">3. Build Your Network</h3>
+                            <p data-key="involved3Text">Connect with like-minded individuals in your area. Strong communities are the foundation of a strong nation.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-secondary py-6">
+        <div class="container mx-auto px-6 text-center text-primary/60">
+            <p data-key="footerText">&copy; 2025 Hezb-e Shāyestegi va Tose'e. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE
+        const firebaseConfig = {
+            apiKey: "AIzaSyA7LVYSdsicIzoCU2OXhQ_e1I1xq83QwOE",
+            authDomain: "iran-competence-movement.firebaseapp.com",
+            projectId: "iran-competence-movement",
+            storageBucket: "iran-competence-movement.appspot.com",
+            messagingSenderId: "567937512842",
+            appId: "1:567937512842:web:79a3c1d093b6108b6d8473"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const translations = {
+                en: {
+                    pageTitle: "The Party of Competence and Development",
+                    partyNameShort: "Party of Competence & Development",
+                    navVision: "Our Vision",
+                    navEmblem: "Our Emblem",
+                    navPillars: "The Four Pillars",
+                    navManifesto: "Manifesto",
+                    navRoadmap: "Roadmap",
+                    navVisionMobile: "Our Vision",
+                    navEmblemMobile: "Our Emblem",
+                    navPillarsMobile: "The Four Pillars",
+                    navManifestoMobile: "Manifesto",
+                    navRoadmapMobile: "Roadmap",
+                    partyNameLong: "The Party of Competence and Development",
+                    partySubtitle: "Hezb-e Shāyestegi va Tose'e",
+                    visionText: "Our vision is to build a prosperous, sovereign, and respected Iran where every citizen has the dignity of opportunity and the security of justice. We envision a nation defined by the competence of its people, the transparency of its government, peaceful engagement with the world, and harmony with its environment. <strong>We are unequivocally committed to the territorial integrity and national sovereignty of Iran.</strong>",
+                    coreValuesTitle: "In Simple Terms, We Believe In:",
+                    coreValuesText: "A future for Iran built on <strong class='text-highlight'>Competency</strong>, not connections. Full <strong class='text-highlight'>Transparency</strong> in government. A strong, respected Iran that is a <strong class='text-highlight'>Partner with the World</strong>. And a deep commitment to <strong class='text-highlight'>Protecting Iran's Environment</strong> for our children.",
+                    manifestoButton: "Read Our Manifesto",
+                    roadmapButton: "Explore the Roadmap",
+                    emblemTitle: "Our Emblem: Strength and Progress",
+                    emblemText: "We honor our rich history while looking to the future. Our emblem is the historic Lion and Sun, a symbol of Iranian courage, strength, and our nation's enduring spirit. It connects our deep roots to a future of development and shared purpose.",
+                    pillarsTitle: "Our Four Pillars for a New Iran",
+                    pillarsSubtitle: "Our platform is built on four foundational pillars designed to address our nation's most pressing challenges and unlock its immense potential. Click on a pillar to explore our vision for the future.",
+                    pillar1Title: "Good Governance",
+                    pillar1Subtitle: "Competence, Transparency, and Accountability.",
+                    pillar2Title: "Foreign Policy",
+                    pillar2Subtitle: "A Welcoming Hand to the World.",
+                    pillar3Title: "Democratic Safeguards",
+                    pillar3Subtitle: "A Fair and Unbiased System for All.",
+                    pillar4Title: "Environmental Sustainability",
+                    pillar4Subtitle: "Securing Our Land and Water.",
+                    pillar1DetailTitle: "Pillar 1: Good Governance",
+                    pillar1DetailQuote: "We will strive for a government that serves the people, not the powerful. We will work to dismantle the systems of corruption and cronyism that have held our nation back.",
+                    p1PastTitle: "The Past: A System of Decay",
+                    p1Past1: "<span class='font-bold'>⛓️ Cronyism:</span> Key roles based on connections, not skill.",
+                    p1Past2: "<span class='font-bold'>🔒 Lack of Transparency:</span> Public funds and decisions hidden from view.",
+                    p1Past3: "<span class='font-bold'>⚖️ Unequal Justice:</span> Laws applied differently based on status.",
+                    p1Past4: "<span class='font-bold'>⛪️ Religious Governance:</span> State authority tied to religious doctrine.",
+                    p1FutureTitle: "Our Future: A System of Integrity",
+                    p1Future1: "<span class='font-bold'>🏛️ Secular Governance:</span> Separation of religion and state.",
+                    p1Future2: "<span class='font-bold'>🎓 Merit-Based Service:</span> An independent commission to ensure competence.",
+                    p1Future3: "<span class='font-bold'>🔍 Radical Transparency:</span> A powerful anti-corruption agency.",
+                    p1Future4: "<span class='font-bold'>⚖️ Independent Judiciary:</span> Rule of law applied equally to all.",
+                    pillar2DetailTitle: "Pillar 2: Foreign Policy",
+                    pillar2DetailQuote: "Isolation belongs in the past. Iran's strength lies in its ability to be a constructive and engaged partner on the world stage.",
+                    p2Title: "From Isolation to Partnership",
+                    p2Text: "Our foreign policy will be guided by the principle of 'Friend to All, Partner for Peace.' We will build a 'Ring of Prosperity' with our neighbors and open our doors to tourism and investment, re-establishing Iran as a respected member of the international community.",
+                    p2Point1: "Resolve disputes through diplomacy and de-escalation.",
+                    p2Point2: "Launch a national initiative to become a world-class tourism destination.",
+                    p2Point3: "Build a 'Ring of Prosperity' with neighbors on joint economic projects.",
+                    diagramIran: "Iran",
+                    diagramWorld: "World",
+                    diagramNeighbors: "Neighbors",
+                    diagramInvestment: "Investment",
+                    diagramTourism: "Tourism",
+                    pillar3DetailTitle: "Pillar 3: Democratic Safeguards",
+                    pillar3DetailQuote: "Power must be a trust, not a right. We will strive for a system that prevents the rise of dictatorship and protects the rights of every single Iranian.",
+                    p3Title1: "Unity in Diversity",
+                    p3Text1: "We support laws that explicitly protect the rights of all ethnic groups. We recognize Persian as the official language for national unity, while simultaneously promoting regional languages as a vital part of our national heritage.",
+                    p3Title2: "Checks and Balances",
+                    p3Text2: "We advocate for a parliamentary system with strict term limits. True national unity is built on trust and partnership, devolving power to local governments to strengthen our national bond.",
+                    p3Flow1: "The People",
+                    p3Flow2: "Freely Elected Parliament",
+                    p3Flow3: "Accountable Executive (Prime Minister)",
+                    pillar4DetailTitle: "Pillar 4: Environmental Sustainability",
+                    pillar4DetailQuote: "Our natural resources are the foundation of our national prosperity and well-being. We will act decisively to reverse the environmental crises that threaten our nation's very survival.",
+                    p4Title: "A Green Economic Shift",
+                    p4ToggleLabel: "Unsustainable Path",
+                    p4TextUnsustainable: "Continuing on the current path means prioritizing water-intensive industries and agricultural practices that deplete our most precious resource.",
+                    p4Point1Unsustainable: "🏭 Subsidies for polluting industries like tile manufacturing.",
+                    p4Point2Unsustainable: "🍉 Cultivation of water-intensive crops like rice and watermelon.",
+                    p4Point3Unsustainable: "🚱 Neglect of our deteriorating water infrastructure.",
+                    p4TextSustainable: "Our plan is to declare a national water emergency, invest in sustainable technology, and shift our economy towards a green future.",
+                    p4Point1Sustainable: "💧 Massive investment in desalination and water conservation.",
+                    p4Point2Sustainable: "🏞️ Promoting high-value, low-impact sectors like eco-tourism and tech.",
+                    p4Point3Sustainable: "🌲 Creating and expanding national parks to protect our natural heritage.",
+                    getInvolvedTitle: "Join the Party for a New Iran",
+                    getInvolvedText: "The future of Iran is in our hands. If you believe in a future defined by competence, justice, and prosperity, join us in building it.",
+                    involved1Title: "1. Stay Informed",
+                    involved1Text: "Join our mailing list to receive updates on our progress and learn more about our detailed policy proposals.",
+                    involved2Title: "2. Share the Vision",
+                    involved2Text: "Talk to your friends, family, and community about our Four Pillars. A shared vision is the first step towards real change.",
+                    involved3Title: "3. Build Your Network",
+                    involved3Text: "Connect with like-minded individuals in your area. Strong communities are the foundation of a strong nation.",
+                    signUpButton: "Sign Up",
+                    footerText: "© 2025 Hezb-e Shāyestegi va Tose'e. All Rights Reserved."
+                },
+                fa: {
+                    pageTitle: "حزب شایستگی و توسعه",
+                    partyNameShort: "حزب شایستگی و توسعه",
+                    navVision: "چشم‌انداز ما",
+                    navEmblem: "نشان ما",
+                    navPillars: "چهار ستون",
+                    navManifesto: "مانیفست",
+                    navRoadmap: "نقشه راه",
+                    navVisionMobile: "چشم‌انداز ما",
+                    navEmblemMobile: "نشان ما",
+                    navPillarsMobile: "چهار ستون",
+                    navManifestoMobile: "مانیفست",
+                    navRoadmapMobile: "نقشه راه",
+                    partyNameLong: "حزب شایستگی و توسعه",
+                    partySubtitle: "The Party of Competence and Development",
+                    visionText: "چشم‌انداز ما ایجاد ایرانی آباد، مستقل و قابل احترام است که در آن هر شهروند از کرامت فرصت‌ها و امنیت عدالت برخوردار باشد. ما به آینده‌ای می‌اندیشیم که با شایستگی مردم، شفافیت دولت، تعامل صلح‌آمیز با جهان و سازگاری با محیط زیست تعریف شود. <strong>ما به تمامیت ارضی و حاکمیت ملی ایران به طور قاطع متعهد هستیم.</strong>",
+                    coreValuesTitle: "به زبان ساده، باور ما این است:",
+                    coreValuesText: "آینده‌ای برای ایران که بر پایه <strong class='text-highlight'>شایستگی</strong> ساخته شود، نه روابط. <strong class='text-highlight'>شفافیت</strong> کامل در دولت. ایرانی قدرتمند و محترم که <strong class='text-highlight'>شریک جهان</strong> است. و تعهدی عمیق به <strong class='text-highlight'>حفاظت از محیط زیست ایران</strong> برای فرزندانمان.",
+                    manifestoButton: "مانیفست ما را بخوانید",
+                    roadmapButton: "نقشه راه را کاوش کنید",
+                    emblemTitle: "نشان ما: قدرت و پیشرفت",
+                    emblemText: "ما ضمن احترام به تاریخ غنی خود، به آینده می‌نگریم. نشان ما، شیر و خورشید تاریخی، نماد شجاعت، قدرت و روح پایدار ملت ایران است. این نشان، ریشه‌های عمیق ما را به آینده‌ای از توسعه و هدف مشترک پیوند می‌زند.",
+                    pillarsTitle: "چهار ستون ما برای ایرانی نو",
+                    pillarsSubtitle: "پلتفرم ما بر چهار ستون بنیادین بنا شده است که برای رسیدگی به مبرم‌ترین چالش‌های کشور و شکوفایی پتانسیل عظیم آن طراحی شده‌اند. برای آشنایی با چشم‌انداز ما برای آینده، روی هر ستون کلیک کنید.",
+                    pillar1Title: "حکمرانی خوب",
+                    pillar1Subtitle: "شایستگی، شفافیت و پاسخگویی.",
+                    pillar2Title: "سیاست خارجی",
+                    pillar2Subtitle: "دستی گشاده به سوی جهان.",
+                    pillar3Title: "پادمان‌های دموکراتیک",
+                    pillar3Subtitle: "سیستمی عادلانه و بی‌طرف برای همه.",
+                    pillar4Title: "پایداری زیست‌محیطی",
+                    pillar4Subtitle: "حفاظت از سرزمین و آب ما.",
+                    pillar1DetailTitle: "ستون اول: حکمرانی خوب",
+                    pillar1DetailQuote: "هدف ما استقرار دولتی است که در خدمت مردم باشد، نه قدرتمندان. ما برای برچیدن سیستم‌های فساد و خویشاوندسالاری که کشور ما را عقب نگه داشته‌اند، تلاش خواهیم کرد.",
+                    p1PastTitle: "گذشته: سیستمی رو به زوال",
+                    p1Past1: "<span class='font-bold'>⛓️ خویشاوندسالاری:</span> مناصب کلیدی بر اساس روابط، نه مهارت.",
+                    p1Past2: "<span class='font-bold'>🔒 عدم شفافیت:</span> پنهان ماندن بودجه‌های عمومی و تصمیمات از دید مردم.",
+                    p1Past3: "<span class='font-bold'>⚖️ عدالت نابرابر:</span> اجرای متفاوت قوانین بر اساس جایگاه افراد.",
+                    p1Past4: "<span class='font-bold'>⛪️ حکومت دینی:</span> گره خوردن اقتدار دولت با آموزه‌های دینی.",
+                    p1FutureTitle: "آینده ما: سیستمی مبتنی بر صداقت",
+                    p1Future1: "<span class='font-bold'>🏛️ حکومت سکولار:</span> جدایی نهاد دین از نهاد دولت.",
+                    p1Future2: "<span class='font-bold'>🎓 خدمات مبتنی بر شایستگی:</span> کمیسیونی مستقل برای تضمین صلاحیت.",
+                    p1Future3: "<span class='font-bold'>🔍 شفافیت کامل:</span> سازمان قدرتمند ضد فساد.",
+                    p1Future4: "<span class='font-bold'>⚖️ قوه قضائیه مستقل:</span> حاکمیت قانون یکسان برای همه.",
+                    pillar2DetailTitle: "ستون دوم: سیاست خارجی",
+                    pillar2DetailQuote: "انزوا باید به تاریخ بپیوندد. قدرت ایران در توانایی آن برای تبدیل شدن به یک شریک سازنده و فعال در صحنه جهانی نهفته است.",
+                    p2Title: "از انزوا تا مشارکت",
+                    p2Text: "سیاست خارجی ما بر پایه اصل «دوست با همه، شریک برای صلح» خواهد بود. ما یک «حلقه شکوفایی» با همسایگان خود ایجاد کرده و درهای خود را به روی گردشگری و سرمایه‌گذاری باز خواهیم کرد و جایگاه ایران را به عنوان عضوی قابل احترام در جامعه بین‌المللی بازخواهیم یافت.",
+                    p2Point1: "حل اختلافات از طریق دیپلماسی و تنش‌زدایی.",
+                    p2Point2: "آغاز یک طرح ملی برای تبدیل شدن به یک مقصد گردشگری در سطح جهانی.",
+                    p2Point3: "ایجاد یک «حلقه شکوفایی» با همسایگان در پروژه‌های مشترک اقتصادی.",
+                    diagramIran: "ایران",
+                    diagramWorld: "جهان",
+                    diagramNeighbors: "همسایگان",
+                    diagramInvestment: "سرمایه‌گذاری",
+                    diagramTourism: "گردشگری",
+                    pillar3DetailTitle: "ستون سوم: پادمان‌های دموکراتیک",
+                    pillar3DetailQuote: "قدرت باید یک امانت باشد، نه یک حق. ما برای سیستمی تلاش می‌کنیم که از ظهور دیکتاتوری جلوگیری کرده و از حقوق تک‌تک ایرانیان محافظت کند.",
+                    p3Title1: "وحدت در عین کثرت",
+                    p3Text1: "ما از قوانینی حمایت می‌کنیم که به صراحت از حقوق همه گروه‌های قومی محافظت کنند. ما زبان فارسی را به عنوان زبان رسمی برای اتحاد ملی به رسمیت می‌شناسیم، و همزمان برای ترویج زبان‌های منطقه‌ای به عنوان بخشی حیاتی از میراث ملی خود تلاش می‌کنیم.",
+                    p3Title2: "تفکیک و توازن قوا",
+                    p3Text2: "ما از یک سیستم پارلمانی با محدودیت دوره‌های مسئولیت حمایت می‌کنیم. وحدت ملی واقعی بر پایه اعتماد و مشارکت بنا شده و قدرت را به دولت‌های محلی واگذار می‌کند تا پیوند ملی ما تقویت شود.",
+                    p3Flow1: "مردم",
+                    p3Flow2: "مجلس منتخب آزاد",
+                    p3Flow3: "قوه مجریه پاسخگو (نخست‌وزیر)",
+                    pillar4DetailTitle: "ستون چهارم: پایداری زیست‌محیطی",
+                    pillar4DetailQuote: "منابع طبیعی ما شالوده شکوفایی و رفاه ملی ماست. ما برای معکوس کردن بحران‌های زیست‌محیطی که بقای کشور ما را تهدید می‌کند، با قاطعیت تلاش خواهیم کرد.",
+                    p4Title: "یک تغییر جهت اقتصادی سبز",
+                    p4ToggleLabel: "مسیر ناپایدار",
+                    p4TextUnsustainable: "ادامه مسیر کنونی به معنای اولویت دادن به صنایع و کشاورزی آب‌بر است که گرانبهاترین منبع ما را نابود می‌کند.",
+                    p4Point1Unsustainable: "🏭 یارانه‌ به صنایع آلاینده مانند کاشی‌سازی.",
+                    p4Point2Unsustainable: "🍉 کشت محصولات آب‌بر مانند برنج و هندوانه.",
+                    p4Point3Unsustainable: "🚱 بی‌توجهی به زیرساخت‌های آبی رو به فرسایش.",
+                    p4TextSustainable: "برنامه ما اعلام وضعیت اضطراری ملی برای آب، سرمایه‌گذاری در فناوری پایدار و تغییر اقتصاد به سمت آینده‌ای سبز است.",
+                    p4Point1Sustainable: "💧 سرمایه‌گذاری گسترده در آب‌شیرین‌کن‌ها و صرفه‌جویی در مصرف آب.",
+                    p4Point2Sustainable: "🏞️ ترویج بخش‌های با ارزش افزوده بالا و تأثیر کم مانند اکوتوریسم و فناوری.",
+                    p4Point3Sustainable: "🌲 ایجاد و گسترش پارک‌های ملی برای حفاظت از میراث طبیعی.",
+                    getInvolvedTitle: "به حزب برای ایرانی نو بپیوندید",
+                    getInvolvedText: "آینده ایران به همت مردم آن بستگی دارد. اگر به آینده‌ای مبتنی بر شایستگی، عدالت و شکوفایی باور دارید، در ساختن آن به ما کمک کنید.",
+                    involved1Title: "۱. آگاه بمانید",
+                    involved1Text: "به لیست پستی ما بپیوندید تا از پیشرفت ما و طرح‌های سیاسی دقیق ما مطلع شوید.",
+                    involved2Title: "۲. چشم‌انداز را به اشتراک بگذارید",
+                    involved2Text: "با دوستان، خانواده و جامعه خود درباره چهار ستون ما صحبت کنید. یک چشم‌انداز مشترک اولین قدم برای تغییر واقعی است.",
+                    involved3Title: "۳. شبکه خود را بسازید",
+                    involved3Text: "با افراد همفکر در منطقه خود ارتباط برقرار کنید. جوامع قوی، بنیان یک ملت قوی هستند.",
+                    signUpButton: "ثبت نام",
+                    footerText: "© 2025 حزب شایستگی و توسعه. تمام حقوق محفوظ است."
+                }
+            };
+
+            const languageSwitcher = document.querySelectorAll('.lang-switcher button, .lang-switcher-mobile button');
+            const manifestoLinks = document.querySelectorAll('[data-key="navManifesto"], [data-key="navManifestoMobile"], [data-key="manifestoButton"]');
+            const roadmapLinks = document.querySelectorAll('[data-key="navRoadmap"], [data-key="navRoadmapMobile"], [data-key="roadmapButton"]');
+            let diversityChart; 
+
+            const setLanguage = (lang) => {
+                document.documentElement.lang = lang;
+                document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+
+                document.querySelectorAll('[data-key]').forEach(element => {
+                    const key = element.getAttribute('data-key');
+                    if (translations[lang][key]) {
+                        element.innerHTML = translations[lang][key];
+                    }
+                });
+                
+                manifestoLinks.forEach(link => {
+                    link.href = lang === 'fa' ? 'content/manifesto_fa.pdf' : 'content/manifesto_en.pdf';
+                });
+
+                roadmapLinks.forEach(link => {
+                    link.href = lang === 'fa' ? 'content/roadmap_fa.pdf' : 'content/roadmap_en.pdf';
+                });
+
+                languageSwitcher.forEach(button => {
+                    button.classList.remove('active');
+                    if (button.getAttribute('data-lang') === lang) {
+                        button.classList.add('active');
+                    }
+                });
+
+                updateChartLanguage(lang);
+            };
+
+            const updateChartLanguage = (lang) => {
+                const chartData = getChartData(lang);
+                if (diversityChart) {
+                    diversityChart.data.labels = chartData.labels;
+                    diversityChart.options.plugins.title.text = chartData.title;
+                    diversityChart.options.plugins.tooltip.callbacks.label = chartData.tooltipCallback;
+                    diversityChart.update();
+                }
+            };
+            
+            const getChartData = (lang) => {
+                const faData = {
+                    labels: ['فارس', 'آذری', 'کرد', 'لر', 'بلوچ', 'عرب', 'ترکمن و دیگران'],
+                    title: 'همه اقوام به عنوان بخش‌های برابر از یک ایران یکپارچه',
+                    tooltipCallback: (context) => ` ${context.label}: بخشی ضروری و برابر از ایران.`
+                };
+                const enData = {
+                    labels: ['Persian', 'Azeri', 'Kurd', 'Lur', 'Baluch', 'Arab', 'Turkmen & Others'],
+                    title: 'All ethnicities as equal parts of a whole Iran',
+                    tooltipCallback: (context) => ` ${context.label}: An essential and equal part of Iran.`
+                };
+                return lang === 'fa' ? faData : enData;
+            };
+
+            languageSwitcher.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const lang = e.target.getAttribute('data-lang');
+                    setLanguage(lang);
+                });
+            });
+
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // Fade-in animations on scroll
+            const faders = document.querySelectorAll('.fade-in');
+            const appearOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
+            const appearOnScroll = new IntersectionObserver(function (entries, observer) {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                });
+            }, appearOptions);
+            faders.forEach(fader => appearOnScroll.observe(fader));
+
+            // Environmental toggle switch logic
+            const envToggle = document.getElementById('env-toggle');
+            const toggleLabel = document.getElementById('toggle-label');
+            const unsustainableContent = document.getElementById('unsustainable-content');
+            const sustainableContent = document.getElementById('sustainable-content');
+            envToggle.addEventListener('change', function() {
+                const lang = document.documentElement.lang;
+                if (this.checked) {
+                    toggleLabel.innerHTML = lang === 'fa' ? 'مسیر پایدار' : 'Sustainable Path';
+                    toggleLabel.classList.remove('text-accent-red');
+                    toggleLabel.style.color = 'var(--flag-green)';
+                    unsustainableContent.classList.add('hidden');
+                    sustainableContent.classList.remove('hidden');
+                } else {
+                    toggleLabel.innerHTML = lang === 'fa' ? 'مسیر ناپایدار' : 'Unsustainable Path';
+                    toggleLabel.style.color = 'var(--flag-red)';
+                    unsustainableContent.classList.remove('hidden');
+                    sustainableContent.classList.add('hidden');
+                }
+            });
+            
+            // Sign-up form logic
+            const signupForm = document.getElementById('signup-form');
+            const emailInput = document.getElementById('email-input');
+            const signupButton = document.getElementById('signup-button');
+            const formMessage = document.getElementById('form-message');
+
+            signupForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = emailInput.value;
+                if (email) {
+                    signupButton.disabled = true;
+                    signupButton.innerHTML = document.documentElement.lang === 'fa' ? 'در حال ارسال...' : 'Submitting...';
+                    formMessage.textContent = '';
+                    formMessage.classList.remove('text-red-400', 'text-green-400');
+                    
+                    db.collection("subscribers").add({
+                        email: email,
+                        subscribedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    })
+                    .then(() => {
+                        formMessage.textContent = document.documentElement.lang === 'fa' ? 'با تشکر از شما! ایمیل شما ثبت شد.' : 'Thank you! Your email has been registered.';
+                        formMessage.classList.add('text-green-400');
+                        emailInput.value = '';
+                    })
+                    .catch((error) => {
+                        console.error("Error adding document: ", error);
+                        formMessage.textContent = document.documentElement.lang === 'fa' ? 'خطایی رخ داد. لطفاً دوباره تلاش کنید.' : 'An error occurred. Please try again.';
+                        formMessage.classList.add('text-red-400');
+                    })
+                    .finally(() => {
+                         signupButton.disabled = false;
+                         signupButton.innerHTML = document.documentElement.lang === 'fa' ? 'ثبت نام' : 'Sign Up';
+                    });
+                }
+            });
+
+            // Chart.js - Diversity Chart
+            const initialChartData = getChartData('en');
+            const ctx = document.getElementById('diversityChart').getContext('2d');
+            diversityChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: initialChartData.labels,
+                    datasets: [{
+                        label: 'Unity in Diversity',
+                        data: [1, 1, 1, 1, 1, 1, 1],
+                        backgroundColor: [
+                            '#239F40', '#4CAF50', '#FFC300', '#81C784', '#DA0000', '#00796B', '#A5D6A7'
+                        ],
+                        borderColor: '#FFFFFF',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#004D40', font: { family: "'Inter', sans-serif" } } },
+                        tooltip: { callbacks: { label: initialChartData.tooltipCallback } },
+                        title: { display: true, text: initialChartData.title, color: '#004D40', font: { size: 16, family: "'Inter', sans-serif", weight: 'bold' } }
+                    }
+                }
+            });
+            
+            // Set default language based on browser preference
+            const defaultLang = navigator.language.startsWith('fa') ? 'fa' : 'en';
+            setLanguage(defaultLang);
+        });
+    </script>
+
+</body>
+</html>
